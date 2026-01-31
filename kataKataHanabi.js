@@ -12,6 +12,7 @@ class KataKataHanabi extends Phaser.Scene {
         
         // Load images
         this.load.image('redLauncher', 'assets/images/redLauncher.png');
+        this.load.image('redLauncherFired', 'assets/images/redLauncherFired.png');
         this.load.image('spark', 'assets/particles/fireworkSpark.png');
         this.load.image('fireworkTrail', 'assets/images/fireworkTrail.png');
     }
@@ -20,10 +21,14 @@ class KataKataHanabi extends Phaser.Scene {
      * Set up the scene
      */
     create() {
-        // Add launcher image
-        this.launcher = this.add.image(0, 250, 'redLauncher');
+        // Add launcher sprite
+        this.launcherXInitial = 0;
+        this.launcherYInitial = 250;
+
+        this.launcher = this.add.sprite(this.launcherXInitial, this.launcherYInitial, 'redLauncher');
         this.launcher.setScale(0.1);
-        this.launcher.xSpeed = 2;
+        this.launcher.xSpeed = 0.8;
+        this.launcher.setDepth(-1); // send to back
 
         // Word box configuration
         const wordBoxWidth = 300;
@@ -35,7 +40,6 @@ class KataKataHanabi extends Phaser.Scene {
         this.wordBox = this.add.rectangle(wordBoxX, wordBoxY, wordBoxWidth, wordBoxHeight, 0xffffff);
         this.wordBox.setOrigin(0, 0); // top-left origin
         this.wordBox.setStrokeStyle(3, 0x00000); // border color and thickness
-        this.wordBox.setDepth(-1); // send to back
 
         // Load word list and set current target word
         this.wordList = ['hanabi', 'firework', 'sparkle', 'rocket'];
@@ -49,6 +53,7 @@ class KataKataHanabi extends Phaser.Scene {
         });
         this.targetWordText.setOrigin(0.5, 0.5);
         this.targetWordText.setPosition(wordBoxX + wordBoxWidth / 2, wordBoxY + wordBoxHeight / 2);
+        this.targetWordText.setDepth(1); // bring to front
  
         // Store user input
         this.userInput = ''; 
@@ -64,10 +69,15 @@ class KataKataHanabi extends Phaser.Scene {
         // Move launcher
         this.launcher.x += this.launcher.xSpeed;
 
-        // Reset launcher position if it goes off screen
+        // Reset if launcher goes off screen
         if (this.launcher.x > this.scale.width) {
-            this.launcher.x = 0;
+            this.launcher.x = this.launcherXInitial;
+            this.launcher.y = this.launcherYInitial;
+            
+            // Reset target word and user input
             this.setNewTargetWord();
+            this.userInput = '';
+            this.correctText = '';
         }
     }
 
@@ -92,6 +102,7 @@ class KataKataHanabi extends Phaser.Scene {
         }
 
         const key = event.key.toLowerCase();    // Normalize to lowercase
+        
         // Only process a-z keys
         if (key.length === 1 && key >= 'a' && key <= 'z') {
             // Check if key matches next letter in target word
@@ -103,8 +114,12 @@ class KataKataHanabi extends Phaser.Scene {
 
             // Check if user input matches target word
             if (this.userInput === this.targetWord) {
+                // Stop moving launcher temporarily
+                this.launcher.xSpeed = 0;
+                this.launcher.x
+
                 // Launch firework
-                this.explodeFirework(this.launcher.x, 100);
+                this.launchFirework();
 
                 // Select new target word
                 this.setNewTargetWord();
@@ -120,22 +135,29 @@ class KataKataHanabi extends Phaser.Scene {
      * Launch firework from (x, y)
      */
     launchFirework() {
-        const launcherX = this.launcher.x;
-        const launcherY = this.launcher.y;
-
-        // Firework sprite
-        const rocket = this.add.sprite(launcherX, launcherY, 'redLauncher');
-
+        this.launcher.setTexture('redLauncherFired');
+        this.launcher.angle = Phaser.Math.Between(-30, 30); // slight random angle
+        
         // Move rocket up using a tween
         this.tweens.add({
-            targets: rocket,
-            y: launcherY - 300,  // height of the launch
+            targets: this.launcher,
+            y: Phaser.Math.Between(this.launcher.y - 200, this.launcher.y - 100),  // height of the launch
             duration: 800,
             ease: 'Power2',
             onComplete: () => {
+                this.launcher.setVisible(false);
                 // explode when reached top
-                this.explodeFirework(rocket.x, rocket.y);
-                rocket.destroy();
+                this.explodeFirework(this.launcher.x, this.launcher.y);
+
+                // Reset launcher position after explosion
+                this.time.delayedCall(600, () => {
+                    this.launcher.setTexture('redLauncher');
+                    this.launcher.setVisible(true);
+                    this.launcher.angle = 0;
+                    this.launcher.x = this.launcherXInitial;
+                    this.launcher.y = this.launcherYInitial;
+                    this.launcher.xSpeed = 0.8;
+                });
             }
         });
     }
@@ -151,11 +173,6 @@ class KataKataHanabi extends Phaser.Scene {
             lifespan: { min: 300, max: 600 },
             blendMode: 'ADD',
             quantity: 500,
-//             tint: Phaser.Display.Color.GetColor(
-//     Phaser.Math.Between(50, 255),
-//     Phaser.Math.Between(50, 255),
-//     Phaser.Math.Between(50, 255)
-// )
             tint: [     
                 0xFF0000, // deep red
                 0xFF4500, // orange red
