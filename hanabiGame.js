@@ -1,6 +1,6 @@
-class KataKataHanabi extends Phaser.Scene {
+class HanabiGameScene extends Phaser.Scene {
     constructor() {
-        super({ key: 'KataKataHanabi' });
+        super({ key: 'HanabiGameScene' });
     }
 
     /**
@@ -18,7 +18,7 @@ class KataKataHanabi extends Phaser.Scene {
     }
 
     /**
-     * Set up the scene
+     * Set up the gameplay scene
      */
     create() {
         // Add launcher sprite
@@ -186,22 +186,3 @@ class KataKataHanabi extends Phaser.Scene {
         emitter.explode(50);
     }
 }
-
-
-/**
- * Phaser game configuration
- */
-const config = {
-    type: Phaser.AUTO,
-    width: 800,
-	height: 360,
-	backgroundColor: "#0b1c2d",
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
-    },
-
-    scene: KataKataHanabi,
-}
-
-const game = new Phaser.Game(config)
