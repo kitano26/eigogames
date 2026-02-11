@@ -15,6 +15,9 @@ class HanabiGameScene extends Phaser.Scene {
         this.load.image('redLauncherFired', 'assets/images/redLauncherFired.png');
         this.load.image('spark', 'assets/particles/fireworkSpark.png');
         this.load.image('fireworkTrail', 'assets/images/fireworkTrail.png');
+
+        // Load word list
+        this.load.text('words', 'assets/myPicDict.csv');
     }
 
     /**
@@ -42,7 +45,9 @@ class HanabiGameScene extends Phaser.Scene {
         this.wordBox.setStrokeStyle(3, 0x00000); // border color and thickness
 
         // Load word list and set current target word
-        this.wordList = ['hanabi', 'firework', 'sparkle', 'rocket'];
+        // this.wordList = ['hanabi', 'firework', 'sparkle', 'rocket'];
+        const raw = this.cache.text.get('words');
+        this.wordList = raw.split('\n').slice(1).map(w => w.trim()).filter(w => w.length > 0);
         this.targetWord =  Phaser.Math.RND.pick(this.wordList);
 
         // Display target word text
