@@ -14,7 +14,6 @@ class HanabiGameScene extends Phaser.Scene {
         this.load.image('redLauncher', 'assets/images/redLauncher.png');
         this.load.image('redLauncherFired', 'assets/images/redLauncherFired.png');
         this.load.image('spark', 'assets/particles/fireworkSpark.png');
-        this.load.image('fireworkTrail', 'assets/images/fireworkTrail.png');
 
         // Load word list
         this.load.text('words', 'assets/myPicDict.csv');
@@ -25,7 +24,7 @@ class HanabiGameScene extends Phaser.Scene {
      */
     create() {
         // Add launcher sprite
-        this.launcherXInitial = 0;
+        this.launcherXInitial = 20;
         this.launcherYInitial = 250;
 
         this.launcher = this.add.sprite(this.launcherXInitial, this.launcherYInitial, 'redLauncher');
@@ -45,9 +44,8 @@ class HanabiGameScene extends Phaser.Scene {
         this.wordBox.setStrokeStyle(3, 0x00000); // border color and thickness
 
         // Load word list and set current target word
-        // this.wordList = ['hanabi', 'firework', 'sparkle', 'rocket'];
         const raw = this.cache.text.get('words');
-        this.wordList = raw.split('\n').slice(1).map(w => w.trim()).filter(w => w.length > 0);
+        this.wordList = raw.split('\n').slice(1) .map(w => w.trim()).filter(w => /^[a-z ]+$/.test(w));
         this.targetWord =  Phaser.Math.RND.pick(this.wordList);
 
         // Display target word text
@@ -65,6 +63,30 @@ class HanabiGameScene extends Phaser.Scene {
 
         // Listen for keyboard input
         this.input.keyboard.on('keydown', this.handleKey, this);
+
+        // Timer: 60-second countdown
+        this.timeLeft = 60; // seconds
+        this.gameOver = false;
+        this.timerText = this.add.text(this.scale.width - 30,
+            25,
+            `Time: ${this.timeLeft}`,
+            {
+                fontSize: '28px',
+                color: '#ffd700',
+                stroke: '#ffffffff',
+                strokeThickness: 2
+            }
+            ).setOrigin(1, 0);
+
+        this.timerText.setShadow(0, 0, '#ff00f2ff', 15, true, true);  
+
+        this.timerEvent = this.time.addEvent({
+            delay: 1000,
+            callback: this.onTimerTick,
+            callbackScope: this,
+            loop: true
+        });
+
     }
 
     /**
@@ -115,8 +137,8 @@ class HanabiGameScene extends Phaser.Scene {
 
         const key = event.key.toLowerCase();    // Normalize to lowercase
         
-        // Only process a-z keys
-        if (key.length === 1 && key >= 'a' && key <= 'z') {
+        // Only process a-z or space keys
+        if (/^[a-z ]$/.test(key)) {
             // Check if key matches next letter in target word
             if (key === this.targetWord.charAt(this.userInput.length)) {
                 this.userInput += key;                                              // Append key to user input
@@ -152,7 +174,7 @@ class HanabiGameScene extends Phaser.Scene {
         // Move rocket up using a tween
         this.tweens.add({
             targets: this.launcher,
-            y: Phaser.Math.Between(this.launcher.y - 200, this.launcher.y - 100),  // height of the launch
+            y: Phaser.Math.Between(this.launcher.y - 180, this.launcher.y - 100),  // height of the launch
             duration: 800,
             ease: 'Power2',
             onComplete: () => {
@@ -195,5 +217,33 @@ class HanabiGameScene extends Phaser.Scene {
         });
 
         emitter.explode(50);
+    }
+
+    /**
+     * Timer tick event
+     */
+    onTimerTick() {
+        if (this.gameOver) {
+            return;
+        }
+
+        this.timeLeft--;
+
+        // Update timer text
+        this.timerText.setText(`Time: ${this.timeLeft}`);
+
+        // Check for game over
+        if (this.timeLeft <= 0) {
+            this.gameOver = true;
+            this.launcher.isMoving = false;
+            this.timerEvent.remove(); // Stop the timer event
+
+            // Show game over text
+            const gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, 'Game Over', {
+                fontFamily: 'Arial',
+                fontSize: '48px',
+                color: '#ff0000'
+            }).setOrigin(0.5, 0.5);
+        }
     }
 }
