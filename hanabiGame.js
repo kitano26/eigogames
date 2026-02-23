@@ -67,8 +67,8 @@ class HanabiGameScene extends Phaser.Scene {
         // Timer: 60-second countdown
         this.timeLeft = 60; // seconds
         this.gameOver = false;
-        this.timerText = this.add.text(this.scale.width - 30,
-            25,
+        this.timerText = this.add.text(this.scale.width - 20,
+            20,
             `Time: ${this.timeLeft}`,
             {
                 fontSize: '28px',
@@ -85,6 +85,13 @@ class HanabiGameScene extends Phaser.Scene {
             callback: this.onTimerTick,
             callbackScope: this,
             loop: true
+        });
+
+        // Score
+        this.score = 0;
+        this.scoreText = this.add.text(20, 20, `Score: ${this.score}`, {
+            fontSize: '28px',
+            color: '#ffffff'
         });
 
     }
@@ -148,6 +155,10 @@ class HanabiGameScene extends Phaser.Scene {
 
             // Check if user input matches target word
             if (this.userInput === this.targetWord) {
+                // Increment score
+                this.score += 100;
+                this.scoreText.setText(`Score: ${this.score}`);
+
                 // Stop moving launcher temporarily
                 this.launcher.isMoving = false;
 
@@ -169,12 +180,12 @@ class HanabiGameScene extends Phaser.Scene {
      */
     launchFirework() {
         this.launcher.setTexture('redLauncherFired');
-        this.launcher.angle = Phaser.Math.Between(-30, 30); // slight random angle
+        // this.launcher.angle = Phaser.Math.Between(-30, 30); // slight random angle
         
         // Move rocket up using a tween
         this.tweens.add({
             targets: this.launcher,
-            y: Phaser.Math.Between(this.launcher.y - 180, this.launcher.y - 100),  // height of the launch
+            y: Phaser.Math.Between(this.launcher.y - 150, this.launcher.y - 50),  // height of the launch
             duration: 800,
             ease: 'Power2',
             onComplete: () => {
