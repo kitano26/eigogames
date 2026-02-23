@@ -16,7 +16,7 @@ class HanabiStartScene extends Phaser.Scene {
 
     // Start prompt
     this.startText = this.add.text(centerX, centerY + 10,
-      'Press SPACE or ENTER to start',
+      'Press ENTER to start',
       {
           fontSize: '18px',
           color: '#ffffff'
@@ -30,15 +30,6 @@ class HanabiStartScene extends Phaser.Scene {
       duration: 600,
       yoyo: true,
       repeat: -1
-    });
-
-    this.input.keyboard.once('keydown-SPACE', () => {
-      this.scene.transition({
-        target: 'HanabiGameScene',
-        delay: 800,
-        duration: 500,
-        moveBelow: true
-      });
     });
 
     this.input.keyboard.once('keydown-ENTER', () => {

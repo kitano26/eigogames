@@ -23,8 +23,11 @@ class HanabiGameScene extends Phaser.Scene {
      * Set up the gameplay scene
      */
     create() {
+        // Initialize game state
+        this.gameState = 'playing'; // can be 'playing' or 'gameOver'
+
         // Add launcher sprite
-        this.launcherXInitial = 20;
+        this.launcherXInitial = 50;
         this.launcherYInitial = 250;
 
         this.launcher = this.add.sprite(this.launcherXInitial, this.launcherYInitial, 'redLauncher');
@@ -66,7 +69,6 @@ class HanabiGameScene extends Phaser.Scene {
 
         // Timer: 60-second countdown
         this.timeLeft = 60; // seconds
-        this.gameOver = false;
         this.timerText = this.add.text(this.scale.width - 20,
             20,
             `Time: ${this.timeLeft}`,
@@ -93,6 +95,29 @@ class HanabiGameScene extends Phaser.Scene {
             fontSize: '28px',
             color: '#ffffff'
         });
+
+        // Create game over texts
+        // Show game over text
+        const centerX = this.scale.width / 2;
+        const centerY = this.scale.height / 2;
+        this.gameOverText = this.add.text(centerX, centerY - 20, 'Game Over', {
+            fontSize: '48px',
+            color: '#ff0000',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.gameOverText.setVisible(false); // hide until game over
+        
+        this.highScoreText = this.add.text(centerX, centerY + 50, 'NEW HIGH SCORE!', {
+            fontSize: '32px',
+            color: '#72d677ff'
+        }).setOrigin(0.5);
+        this.highScoreText.setVisible(false); // hide until game over
+
+        this.finalScoreText = this.add.text(centerX, centerY + 90, `Final Score: ${this.score}`, {
+            fontSize: '32px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        this.finalScoreText.setVisible(false); // hide until game over
 
     }
 
@@ -142,35 +167,45 @@ class HanabiGameScene extends Phaser.Scene {
             return;
         }
 
-        const key = event.key.toLowerCase();    // Normalize to lowercase
-        
-        // Only process a-z or space keys
-        if (/^[a-z ]$/.test(key)) {
-            // Check if key matches next letter in target word
-            if (key === this.targetWord.charAt(this.userInput.length)) {
-                this.userInput += key;                                              // Append key to user input
-                this.correctText = `[color=green]${this.userInput}[/color]`;        // Only make correct letters in green
-                this.targetWordText.setText(this.correctText + this.targetWord.slice(this.userInput.length)); // Update displayed text
+        if (this.gameState  === 'gameOver') {
+            if (event.key === "Enter") {
+                console.log("Restarting game...");
+                this.restartGame();
             }
+            return;
+        }
 
-            // Check if user input matches target word
-            if (this.userInput === this.targetWord) {
-                // Increment score
-                this.score += 100;
-                this.scoreText.setText(`Score: ${this.score}`);
+        if (this.gameState === "playing") {
+            const key = event.key.toLowerCase();    // Normalize to lowercase
+        
+            // Only process a-z or space keys
+            if (/^[a-z ]$/.test(key)) {
+                // Check if key matches next letter in target word
+                if (key === this.targetWord.charAt(this.userInput.length)) {
+                    this.userInput += key;                                              // Append key to user input
+                    this.correctText = `[color=green]${this.userInput}[/color]`;        // Only make correct letters in green
+                    this.targetWordText.setText(this.correctText + this.targetWord.slice(this.userInput.length)); // Update displayed text
+                }
 
-                // Stop moving launcher temporarily
-                this.launcher.isMoving = false;
+                // Check if user input matches target word
+                if (this.userInput === this.targetWord) {
+                    // Increment score
+                    this.score += 100;
+                    this.scoreText.setText(`Score: ${this.score}`);
 
-                // Launch firework
-                this.launchFirework();
+                    // Stop moving launcher temporarily
+                    this.launcher.isMoving = false;
 
-                // Select new target word
-                this.setNewTargetWord();
+                    // Launch firework
+                    this.launchFirework();
 
-                // Clear user input
-                this.userInput = '';
-                this.correctText = '';
+                    // Select new target word
+                    this.setNewTargetWord();
+
+                    // Clear user input
+                    this.userInput = '';
+                    this.correctText = '';
+                }
             }
         }
     }
@@ -180,12 +215,12 @@ class HanabiGameScene extends Phaser.Scene {
      */
     launchFirework() {
         this.launcher.setTexture('redLauncherFired');
-        // this.launcher.angle = Phaser.Math.Between(-30, 30); // slight random angle
+        this.launcher.angle = Phaser.Math.Between(-30, 30); // slight random angle
         
         // Move rocket up using a tween
         this.tweens.add({
             targets: this.launcher,
-            y: Phaser.Math.Between(this.launcher.y - 150, this.launcher.y - 50),  // height of the launch
+            y: Phaser.Math.Between(this.launcher.y - 120, this.launcher.y - 50),  // height of the launch
             duration: 800,
             ease: 'Power2',
             onComplete: () => {
@@ -231,10 +266,34 @@ class HanabiGameScene extends Phaser.Scene {
     }
 
     /**
+     * End the game and show final score
+     */
+    endGame() {
+        this.gameState = 'gameOver';
+        this.timerEvent.remove(false); // stop timer
+        this.launcher.isMoving = false; // stop launcher movement
+        this.targetWordText.setText(''); // Clear target word
+        this.wordBox.setVisible(false); // Hide word box           
+
+        this.gameOverText.setVisible(true);
+        this.finalScoreText.setText(`Final Score: ${this.score}`);
+        this.finalScoreText.setVisible(true);
+
+        // Get saved high score
+        const savedHighScore = localStorage.getItem('kataHanabiHighScore');
+
+        // If no high score yet OR new score is higher
+        if (!savedHighScore || this.score > parseInt(savedHighScore)) {
+            localStorage.setItem('kataHanabiHighScore', this.score);
+            this.highScoreText.setVisible(true);
+        }
+    }
+
+    /**
      * Timer tick event
      */
     onTimerTick() {
-        if (this.gameOver) {
+        if (this.gameState === 'gameOver') {
             return;
         }
 
@@ -245,16 +304,14 @@ class HanabiGameScene extends Phaser.Scene {
 
         // Check for game over
         if (this.timeLeft <= 0) {
-            this.gameOver = true;
-            this.launcher.isMoving = false;
-            this.timerEvent.remove(); // Stop the timer event
-
-            // Show game over text
-            const gameOverText = this.add.text(this.scale.width / 2, this.scale.height / 2, 'Game Over', {
-                fontFamily: 'Arial',
-                fontSize: '48px',
-                color: '#ff0000'
-            }).setOrigin(0.5, 0.5);
+            this.endGame();
         }
+    }
+
+    /**
+     * Restart the game
+     */
+    restartGame() {
+        this.scene.restart();
     }
 }
